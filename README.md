@@ -1,223 +1,116 @@
-# RelqProject1
-Building cloud based server for a startup
-Project Documentation
-Overview
+Building Cloud-Based Server for a Startup
 
-This project sets up an EC2 instance on AWS with a security group, SSH configuration, user creation scripts, and installs a web server. The main purpose is to automate server setup, user management, security configurations, and web server deployment with Docker and Apache, leveraging a combination of Terraform and shell scripts.
-Components
+This project automates the setup of an EC2 instance on AWS, including the creation of a new user with SSH key-based access, security configurations, and the installation of a web server (Apache) using Docker. The setup ensures that the instance is secure and ready for use with proper user management, firewall configurations, and web server deployment.
+Project Structure
 
-    Terraform Configuration (ec2.tf): Defines AWS resources such as EC2 instance, key pair, security group, and outputs.
-    Shell Scripts:
-        setup.sh: Automates server setup, including user creation, security configurations (UFW, Fail2Ban), and web server setup (Apache2).
-        addUser.sh: Adds a new user with a password, sets up SSH keys for key-based authentication, and disables password authentication for SSH.
-        dockerAppache.sh: Installs Docker and Apache, sets up a reverse proxy for an Nginx Docker container.
+ec2.tf                   -> Terraform configuration to provision AWS resources
+setup.sh                 -> Shell script to set up the EC2 instance environment
+addUser.sh               -> Shell script to add a new user with SSH access
+dockerAppache.sh         -> Shell script to install Docker and Apache, and configure reverse proxy
+README.md                -> Project documentation
 
+Introduction
+
+This project automates the provisioning of an EC2 instance on AWS and configures a secure environment with a web server. It uses Terraform for infrastructure provisioning and shell scripts for EC2 instance setup and service configuration.
+Installation
 Prerequisites
 
-    Terraform: Required to provision AWS resources.
-    AWS Account: The project assumes you have an AWS account set up and access to the AWS Management Console.
-    SSH Keys: An existing SSH key pair (id_rsa.pub) for secure SSH access.
+Before you begin, ensure you have the following tools and accounts set up:
+
+    Terraform: Required to provision AWS resources. You can install it from here.
+    AWS Account: Ensure you have an AWS account set up.
+    SSH Key Pair: An existing SSH key pair (id_rsa.pub) for secure SSH access. You can generate it using ssh-keygen.
     Shell Access: Basic knowledge of Linux shell scripting.
 
-Steps to Set Up the Project
-1. Set up Terraform
+Quick Start
 
-    Install Terraform from Terraform Official Website.
-    Ensure that your AWS credentials are set in the environment variables, or configure the AWS CLI with aws configure.
+Follow these steps to set up the project and deploy the resources.
+1. Clone the Repository
 
-2. Terraform Configuration (ec2.tf)
+Clone this repository to your local machine:
 
-This configuration defines AWS resources using Terraform:
+git clone <repository_url>
+cd <project_directory>
 
- provider "aws" {
-  region = "us-west-2"  # Replace with your preferred AWS region
-}
+2. Set Up Terraform
 
-resource "aws_key_pair" "server_key" {
-  key_name   = "server_key"
-  public_key = file("~/.ssh/id_rsa.pub")  # Path to your SSH public key
-}
+    Install Terraform if not already installed.
+    Configure your AWS credentials. Run the following command to set your AWS Access Key, Secret Key, and region:
 
-resource "aws_security_group" "server_sg" {
-  name        = "server-sg"
-  description = "Allow SSH, HTTP, and FTP"
+aws configure
 
-  ingress {
-    from_port   = 21
-    to_port     = 21
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+3. Configure Terraform
 
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+Edit the ec2.tf file to modify any AWS region or resource configurations (e.g., AMI, instance type) if needed.
+4. Initialize Terraform
 
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+Run the following command to initialize Terraform and download necessary plugins:
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
+terraform init
 
-resource "aws_instance" "web_server" {
-  ami           = "ami-00aaee1e7c7b0ff78"  
-  instance_type = "t2.micro"  
+5. Apply Terraform Configuration
 
-  key_name        = aws_key_pair.server_key.key_name
-  security_groups = [aws_security_group.server_sg.name]
+Run the following command to create the EC2 instance and related resources:
 
-  # Load the setup script
-  user_data = file("setup.sh")
+terraform apply
 
-  tags = {
-    Name = "web-server"
-  }
-}
+Terraform will show you a plan of the resources it will create. Type yes to confirm.
+6. SSH Access to EC2 Instance
 
-output "instance_ip" {
-  value = aws_instance.web_server.public_ip
-}
+After the Terraform script has finished running, Terraform will output the public IP address of the EC2 instance. Use this IP to SSH into the instance:
 
+ssh -i ~/.ssh/id_rsa ubuntu@<ec2_public_ip>
 
-This script does the following:
+7. Run Setup Scripts
+7.1 Run setup.sh
 
-    Defines an AWS provider and sets the region to us-west-2.
-    Creates an EC2 instance with a security group allowing SSH, FTP, and HTTP access.
-    Outputs the public IP of the EC2 instance.
-
-3. Setup Script (setup.sh)
-
-The setup.sh script configures the EC2 instance with:
-
-    A new user with SSH key-based access.
-    Disables password authentication for SSH.
-    Installs necessary packages (UFW, Apache2, Fail2Ban).
-    Configures UFW to allow only specific ports (21, 22, 80).
-    Configures Fail2Ban to protect against SSH brute-force attacks.
-
-Example usage:
-
-#!/bin/bash
-
-NEW_USER="newuser"
-
-# Create the new user without a password
-sudo adduser --disabled-password --gecos "" $NEW_USER
-
-# Add the new user to the sudo group
-sudo usermod -aG sudo $NEW_USER
-
-# Set up SSH key-based authentication
-sudo mkdir -p /home/$NEW_USER/.ssh
-sudo cp ~/.ssh/authorized_keys /home/$NEW_USER/.ssh/authorized_keys
-sudo chown -R $NEW_USER:$NEW_USER /home/$NEW_USER/.ssh
-sudo chmod 700 /home/$NEW_USER/.ssh
-sudo chmod 600 /home/$NEW_USER/.ssh/authorized_keys
-
-# Disable password authentication for SSH
-sudo sed -i 's/^#?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-sudo systemctl restart sshd
-
-# Install and configure UFW and Apache
-sudo apt update && sudo apt install -y ufw apache2 fail2ban
-sudo ufw default deny incoming
-sudo ufw allow 22/tcp
-sudo ufw allow 80/tcp
-sudo ufw --force enable
-
-4. Add User Script (addUser.sh)
-
-This script allows the creation of a new user with a password passed as a command-line argument:
-
-#!/bin/bash
-
-# Check if both username and password are provided
-if [ "$#" -ne 2 ]; then
-  echo "Usage: $0 <username> <password>"
-  exit 1
-fi
-
-# Define the username and password
-NEW_USER="$1"
-USER_PASSWORD="$2"
-
-# Create the new user and set password
-sudo adduser --disabled-password --gecos "" $NEW_USER
-echo "$NEW_USER:$USER_PASSWORD" | sudo chpasswd
-
-# Add the new user to the sudo group
-sudo usermod -aG sudo $NEW_USER
-
-# Set up SSH key-based authentication
-sudo mkdir -p /home/$NEW_USER/.ssh
-sudo cp ~/.ssh/authorized_keys /home/$NEW_USER/.ssh/authorized_keys
-sudo chown -R $NEW_USER:$NEW_USER /home/$NEW_USER/.ssh
-sudo chmod 700 /home/$NEW_USER/.ssh
-sudo chmod 600 /home/$NEW_USER/.ssh/authorized_keys
-
-5. Docker and Apache Setup (dockerAppache.sh)
-
-The dockerAppache.sh script installs Docker, Apache, and configures Apache to act as a reverse proxy to an Nginx container:
-
-#!/bin/bash
-
-# Install Docker and Apache
-sudo apt update -y
-sudo apt install -y docker.io apache2
-
-# Enable Apache proxy modules
-sudo a2enmod proxy
-sudo a2enmod proxy_http
-sudo a2enmod rewrite
-
-# Run Nginx in Docker
-sudo docker pull nginx
-sudo docker run -d --name nginx-container -p 8080:80 nginx
-
-# Configure Apache reverse proxy
-sudo bash -c 'cat <<EOL > /etc/apache2/sites-available/reverse-proxy.conf
-<VirtualHost *:80>
-    ProxyPass / http://localhost:8080/
-    ProxyPassReverse / http://localhost:8080/
-</VirtualHost>
-EOL'
-
-# Enable Apache site configuration
-sudo a2ensite reverse-proxy.conf
-sudo systemctl restart apache2
-
-6. Permissions and Running Scripts
-
-Ensure that all shell scripts have executable permissions before running them.
-
-To make a script executable:
-
-chmod +x <script_name>.sh
-
-For example:
-
-chmod +x setup.sh
-chmod +x addUser.sh
-chmod +x dockerAppache.sh
-
-Then, to run the scripts:
+The setup.sh script sets up the environment on the EC2 instance. It creates a new user with SSH key-based access and disables password-based authentication for SSH. It also installs necessary packages (UFW, Apache2, Fail2Ban).Config Fail2Ban for block ip after 5 failed attempts for 15 minutes.
 
 ./setup.sh
+
+7.2 Run addUser.sh
+
+The addUser.sh script creates a new user and sets up SSH key-based authentication. You can pass the username and password as arguments to the script:
+
 ./addUser.sh <username> <password>
+
+7.3 Run dockerAppache.sh
+
+This script installs Docker, Apache, and configures Apache to act as a reverse proxy for an Nginx container running in Docker.
+
 ./dockerAppache.sh
 
-Conclusion
+8. Access Web Server
 
-This project automates the process of provisioning an AWS EC2 instance, setting up users, securing SSH access, configuring a firewall, and deploying a web server. The scripts ensure that the EC2 instance is secure and ready for use with SSH key-based authentication, as well as a reverse proxy setup for Nginx running in Docker. 
+Once everything is set up, you can access the web server by navigating to the public IP of the EC2 instance in your web browser:
+
+http://<ec2_public_ip>
+
+You should see the default Nginx page served through Apache.
+Description of Scripts
+setup.sh
+
+    Creates a new user and sets up SSH key-based authentication.
+    Disables password authentication for SSH.
+    Installs and configures UFW (Uncomplicated Firewall) to allow necessary ports (SSH, HTTP).
+    Installs Apache2 and Fail2Ban for added security.
+
+addUser.sh
+
+    Creates a new user with the specified username and password.
+    Configures SSH key-based authentication for the user.
+    Adds the user to the sudo group to grant administrative privileges.
+
+dockerAppache.sh
+
+    Installs Docker and Apache.
+    Configures Apache to act as a reverse proxy to an Nginx container running inside Docker.
+    Enables necessary Apache proxy modules.
+
+Cleanup
+
+To destroy the resources created by Terraform, run:
+
+terraform destroy
+
+This will terminate the EC2 instance and remove any resources defined in the Terraform configuration.
