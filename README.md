@@ -2,12 +2,7 @@ Building Cloud-Based Server for a Startup
 
 This project automates the setup of an EC2 instance on AWS, including the creation of a new user with SSH key-based access, security configurations, and the installation of a web server (Apache) using Docker. The setup ensures that the instance is secure and ready for use with proper user management, firewall configurations, and web server deployment.
 Project Structure
-
-ec2.tf                   -> Terraform configuration to provision AWS resources
-setup.sh                 -> Shell script to set up the EC2 instance environment
-addUser.sh               -> Shell script to add a new user with SSH access
-dockerAppache.sh         -> Shell script to install Docker and Apache, and configure reverse proxy
-README.md                -> Project documentation
+![tree](https://github.com/user-attachments/assets/c4460e31-bd06-4c27-85a2-0c8f5c0ef1d4)
 
 Introduction
 
