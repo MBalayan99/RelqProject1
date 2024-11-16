@@ -66,11 +66,15 @@ After the Terraform script has finished running, Terraform will output the publi
 ssh -i ~/.ssh/id_rsa ubuntu@<ec2_public_ip>
 
 7. Run Setup Scripts
+
 7.1 Run setup.sh
 
 The setup.sh script sets up the environment on the EC2 instance. It creates a new user with SSH key-based access and disables password-based authentication for SSH. It also installs necessary packages (UFW, Apache2, Fail2Ban).Config Fail2Ban for block ip after 5 failed attempts for 15 minutes.
 
 ./setup.sh
+
+![fal2ban](https://github.com/user-attachments/assets/a8d9f4c7-8f9e-47ed-83f9-a6852e262f81)
+
 
 7.2 Run addUser.sh
 
@@ -78,17 +82,29 @@ The addUser.sh script creates a new user and sets up SSH key-based authenticatio
 
 ./addUser.sh <username> <password>
 
+![adduser](https://github.com/user-attachments/assets/b9e76cca-9030-4f83-83c7-4e8635362a18)
+
+
 7.3 Run dockerAppache.sh
 
 This script installs Docker, Apache, and configures Apache to act as a reverse proxy for an Nginx container running in Docker.
 
 ./dockerAppache.sh
 
+![Screenshot from 2024-11-16 12-39-37](https://github.com/user-attachments/assets/c6ddbc69-3e5a-4ed3-a6f8-772ebacfcab6)
+
+![dockerPS](https://github.com/user-attachments/assets/32b49529-87be-48b1-8e8d-495e0f82a21b)
+
+
 8. Access Web Server
 
 Once everything is set up, you can access the web server by navigating to the public IP of the EC2 instance in your web browser:
 
 http://<ec2_public_ip>
+
+![appache](https://github.com/user-attachments/assets/ae1e8d2d-36e4-42ff-b8a0-0cadfc5f3234)
+
+
 
 You should see the default Nginx page served through Apache.
 Description of Scripts
