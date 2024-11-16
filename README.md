@@ -46,11 +46,17 @@ Run the following command to initialize Terraform and download necessary plugins
 
 terraform init
 
+![terraforminit](https://github.com/user-attachments/assets/735a8f24-6e64-41c4-901b-225c73948263)
+
+
 5. Apply Terraform Configuration
 
 Run the following command to create the EC2 instance and related resources:
 
 terraform apply
+
+![ec2](https://github.com/user-attachments/assets/cc10dad3-b3f5-4a7b-9aa2-4eaea275205f)
+
 
 Terraform will show you a plan of the resources it will create. Type yes to confirm.
 6. SSH Access to EC2 Instance
